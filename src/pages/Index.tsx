@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase"; // <-- updated path
 import { Auth } from "@/components/Auth";
 import { TodoList } from "@/components/TodoList";
 import type { User, Session } from "@supabase/supabase-js";
@@ -11,13 +12,13 @@ const Index = () => {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,3 +49,4 @@ const Index = () => {
 };
 
 export default Index;
+

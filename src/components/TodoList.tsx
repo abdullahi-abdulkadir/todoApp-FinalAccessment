@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, LogOut, Plus } from "lucide-react";
+import { Trash2, LogOut, Plus, Pencil, Check, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 interface Todo {
@@ -23,6 +23,8 @@ export const TodoList = ({ user }: TodoListProps) => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -105,6 +107,43 @@ export const TodoList = ({ user }: TodoListProps) => {
     }
   };
 
+  const startEditing = (id: string, currentTitle: string) => {
+    setEditingId(id);
+    setEditValue(currentTitle);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editValue.trim()) {
+      cancelEditing();
+      return;
+    }
+
+    const { error } = await supabase
+      .from("todos")
+      .update({ title: editValue })
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      fetchTodos();
+      cancelEditing();
+      toast({
+        title: "Updated",
+        description: "Todo updated successfully",
+      });
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
@@ -166,24 +205,66 @@ export const TodoList = ({ user }: TodoListProps) => {
                   checked={todo.completed}
                   onCheckedChange={() => toggleTodo(todo.id, todo.completed)}
                   className="data-[state=checked]:bg-accent data-[state=checked]:border-accent"
+                  disabled={editingId === todo.id}
                 />
-                <span
-                  className={`flex-1 ${
-                    todo.completed
-                      ? "line-through text-muted-foreground"
-                      : "text-foreground"
-                  }`}
-                >
-                  {todo.title}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => deleteTodo(todo.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {editingId === todo.id ? (
+                  <>
+                    <Input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(todo.id);
+                        if (e.key === "Escape") cancelEditing();
+                      }}
+                      className="flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => saveEdit(todo.id)}
+                      className="hover:text-accent"
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={cancelEditing}
+                      className="hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className={`flex-1 ${
+                        todo.completed
+                          ? "line-through text-muted-foreground"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {todo.title}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => startEditing(todo.id, todo.title)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-accent"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteTodo(todo.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </Card>
             ))
           )}
