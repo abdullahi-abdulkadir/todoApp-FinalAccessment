@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // <-- IMPORTED useCallback
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,11 +27,8 @@ export const TodoList = ({ user }: TodoListProps) => {
   const [editValue, setEditValue] = useState("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTodos();
-  }, []);
-
-  const fetchTodos = async () => {
+  // FIX: Wrap fetchTodos in useCallback to make it a stable dependency
+  const fetchTodos = useCallback(async () => {
     const { data, error } = await supabase
       .from("todos")
       .select("*")
@@ -46,7 +43,11 @@ export const TodoList = ({ user }: TodoListProps) => {
     } else {
       setTodos(data || []);
     }
-  };
+  }, [toast, setTodos]); // Added dependencies for stability
+
+  useEffect(() => {
+    fetchTodos();
+  }, [fetchTodos]); // Now safe because fetchTodos is wrapped in useCallback
 
   const addTodo = async (e: React.FormEvent) => {
     e.preventDefault();

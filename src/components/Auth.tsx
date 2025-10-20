@@ -16,12 +16,15 @@ export const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+     const redirectTo = encodeURI(`${window.location.origin}/`);
+        // const redirectTo = 'http://localhost:3000/'; // Hardcode the redirect URL
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        // emailRedirectTo: redirectTo,
+        emailRedirectTo: 'http://localhost:3000/',
       },
     });
 
